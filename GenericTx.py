@@ -1,6 +1,6 @@
 ### Written by P. Motylinski, nCrypt Ltd.
 
-#from TxTools import *
+from TxTools import *
 
 #def scriptlen(string):
 #    new_in_script_sig = string
@@ -9,8 +9,25 @@
 #    if new_in_script_sig_len > 2 and new_in_script_sig_len < 4:
 #        in_script_len = 'FD0'+in_script_len
 #    if new_in_script_sig_len > 4 and new_in_script_sig_len < 8:
-
-
+#def script_length(string):
+#    l = len(string)/2
+#    lhx = hex(l)[2:] if l != 0 else '00'
+#    if len(str(lhx)) % 2 != 0: lhx='0'+lhx
+#    #print "l: " + str(hex(lhx))
+#    #print "string = " + string
+#    #print "l = " + str(lhx)
+#    if int(l) > 255:
+#        #print"l_hex = " + str(hex(l))
+##        print"compare " + str(0x00ff)
+#        return "4d"+str(lhx)
+#    elif int(l) > 65535:
+#        return "4e"+str(lhx)
+#        #print"l_hex = " + str(hex(l))    
+#    else:
+#        return str(lhx)
+#        #print"l_hex = " + str(hex(l))
+        
+#####        
 class GenericTx:
 #    def __init__(self, i_in, i_out, ver=00000001, locktime=0):
     def __init__(self, i_in='00', i_out='00', ver='01000000', locktime='00000000'):
@@ -31,12 +48,13 @@ class GenericTx:
         self.block_lock_time   = locktime
 
     def add_input(self, new_in_prev_out_hash, new_in_prev_out_idx, new_in_script_length, new_in_script_sig, new_in_sequence): # add another input block, new_in_script_length obsolete for now
-        in_script_len=str(hex(len(new_in_script_sig)/2)[2:])
+        #in_script_len=str(hex(len(new_in_script_sig)/2)[2:])
+        in_script_len=script_length(new_in_script_sig)
         self.inputcount += 1
         if len(hex(self.inputcount)[2:]) < 2: self.i_input = '0'+str(self.inputcount)
         self.in_prev_out_hash.append(new_in_prev_out_hash)
         self.in_prev_out_idx.append(new_in_prev_out_idx) 
-        if len(str(len(new_in_script_sig)/2)) < 2: in_script_len = '0'+in_script_len
+        #if len(str(len(new_in_script_sig)/2)) < 2: in_script_len = '0'+in_script_len
         self.in_script_length.append(in_script_len)
         self.in_script_sig.append(new_in_script_sig)   
         self.in_sequence.append(new_in_sequence)     
@@ -44,11 +62,14 @@ class GenericTx:
     def add_signature(self, i_in, new_script_sig, PubKey, tmp): # add signature(s) to input with sequence id
         newPubKeyLen = ''
         if not tmp:
-            newSigLen    = hex( ( (len(str(new_script_sig)) )/2) )[2:]
-            newPubKeyLen = hex(len(str(PubKey))/2)[2:]
+            #newSigLen    = hex( ( (len(str(new_script_sig)) )/2) )[2:]
+            newSigLen    = script_length(new_script_sig)
+            #newPubKeyLen = hex(len(str(PubKey))/2)[2:]
+            newPubKeyLen = script_length(PubKey)
             newScriptSig = str(newSigLen)+new_script_sig+str(newPubKeyLen)+PubKey
-            newScriptSig = str(hex((len(newScriptSig)/2))[2:])+newScriptSig
-            self.in_script_length[int(i_in)] = str(hex(len(newScriptSig)/2-1)[2:]) # subtracting the PubKey length byte ???
+            #newScriptSig = str(hex((len(newScriptSig)/2))[2:])+newScriptSig
+            newScriptSig = script_length(newScriptSig)+newScriptSig
+            self.in_script_length[int(i_in)] = script_length(newScriptSig)#str(hex(len(newScriptSig)/2-1)[2:]) # subtracting the PubKey length byte ???
             self.in_script_sig[int(i_in)] = str(newSigLen) + new_script_sig + str(newPubKeyLen) + PubKey
         else:
             newSigLen    = new_script_sig[:2]
@@ -69,10 +90,11 @@ class GenericTx:
     def add_output(self, new_out_value, new_out_scriptPubKey):
 # add another output block
         self.outputcount += 1
-        out_script_len=str(hex(len(new_out_scriptPubKey)/2)[2:])
+        #out_script_len=str(hex(len(new_out_scriptPubKey)/2)[2:])
+        out_script_len=script_length(new_out_scriptPubKey)
         if len(hex(self.outputcount)[2:]) < 2: self.i_output = '0'+str(self.outputcount)
         self.out_value.append(new_out_value)        
-        if len(str(len(new_out_scriptPubKey)/2)) < 2: out_script_len = '0'+out_script_len
+        #if len(str(len(new_out_scriptPubKey)/2)) < 2: out_script_len = '0'+out_script_len
         self.out_script_length.append(out_script_len)
         self.out_scriptPubKey.append(new_out_scriptPubKey)
 

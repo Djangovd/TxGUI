@@ -5,9 +5,11 @@ import base58
 import unittest
 import ecdsa
 import copy
+import os
 from GenericTx import *
 from ecdsa import SigningKey
 ###############
+
 
 def H160(string):
 ### HASH160 function.
@@ -29,7 +31,6 @@ def H160(string):
 #print "stp2 = " + str(r.encode('hex'))
 #'5238c71458e464d9ff90299abca4a1d7b9cb76ab'
 
-
 def B58(string):
 ### Needs verification !!!
     unencoded = str(bytearray.fromhex( string ))
@@ -45,6 +46,16 @@ def decodeB58(string):
     return encoded.encode('hex')
 ##################
 
+def WIF2HEX(priv):
+### convert WIF priv. key to HEX
+    hextmp = decodeB58(priv)
+    hextmp = hextmp[-8:]
+    hextmp = hextmp[2:]
+    return hextmp
+
+################
+
+
 def script_to_hex(script_string):
 ### Encode string in hex
     return script_string.encode("hex")
@@ -56,6 +67,20 @@ def str_to_endian(hex_string):
         new_endian_hex += hex_string[i-2:i]
     return new_endian_hex
 #########################
+
+def script_length(string):
+    l = len(string)/2
+    lhx = hex(l)[2:] if l != 0 else '00'
+    if len(str(lhx)) % 2 != 0: lhx='0'+lhx
+    if int(l) > 255:
+        return "4d"+str_to_endian(str(lhx))
+    elif int(l) > 65535:
+        return "4e"+str_to_endian(str(lhx))
+    else:
+        return str(lhx)
+
+##################
+
 
 def script_to_address(script, ver=0):
     ### Input: hex string    
@@ -201,15 +226,16 @@ def op_script_encode(op_string,len_prefix=False):
 #    where OP_<i> is the ith operator
 # 
 
-    op_dict = {'OP_DUP': hex(118), 'OP_HASH160': hex(169), 'OP_EQUAL': hex(135), 'OP_EQUALVERIFY': hex(136), 'OP_CHECKSIG': hex(172), 'OP_CHECKMULTISIG': hex(174), 'OP_CHECKLOCKTIMEVERIFY': hex(177), 'OP_RETURN': hex(106), 'OP_0': '0x00', 'OP_1': hex(81), 'OP_2': hex(82), 'OP_3': hex(83), 'OP_4': hex(84), 'OP_5': hex(85), 'OP_6': hex(86), 'OP_7': hex(87), 'OP_8': hex(88), 'OP_9': hex(89), 'OP_10': hex(90), 'OP_11': hex(91), 'OP_12': hex(92), 'OP_13': hex(93), 'OP_14': hex(94), 'OP_15': hex(95), 'OP_16': hex(96), 'OP_PICK': hex(121), 'OP_IF': hex(99), 'OP_NOTIF': hex(100), 'OP_ELSE': hex(103), 'OP_ENDIF': hex(104), 'OP_DROP': hex(117), 'OP_NOP': hex(97), 'OP_TRUE': hex(81), 'OP_FALSE': '0x00', 'OP_ADD': hex(147), 'OP_SUB': hex(148), 'OP_SWAP': hex(124) }
+    op_dict = {'OP_PUSHDATA': hex(76), 'OP_PUSHDATA2': hex(77), 'OP_PUSHDATA4': hex(78), 'OP_DUP': hex(118), 'OP_HASH160': hex(169), 'OP_EQUAL': hex(135), 'OP_EQUALVERIFY': hex(136), 'OP_CHECKSIG': hex(172), 'OP_CHECKMULTISIG': hex(174), 'OP_CHECKLOCKTIMEVERIFY': hex(177), 'OP_RETURN': hex(106), 'OP_0': '0x00', 'OP_1': hex(81), 'OP_2': hex(82), 'OP_3': hex(83), 'OP_4': hex(84), 'OP_5': hex(85), 'OP_6': hex(86), 'OP_7': hex(87), 'OP_8': hex(88), 'OP_9': hex(89), 'OP_10': hex(90), 'OP_11': hex(91), 'OP_12': hex(92), 'OP_13': hex(93), 'OP_14': hex(94), 'OP_15': hex(95), 'OP_16': hex(96), 'OP_PICK': hex(121), 'OP_IF': hex(99), 'OP_NOTIF': hex(100), 'OP_ELSE': hex(103), 'OP_ENDIF': hex(104), 'OP_DROP': hex(117), 'OP_NOP': hex(97), 'OP_TRUE': hex(81), 'OP_FALSE': '0x00', 'OP_ADD': hex(147), 'OP_SUB': hex(148), 'OP_SWAP': hex(124) }
     
     string = op_string.split()
     string_hex = []
     for word in string:
         if word not in op_dict:
             non_op_seg     = word
-            non_op_seg_len = len(non_op_seg)/2
-            non_op_seg_len_hex = hex(non_op_seg_len)[2:]
+            #non_op_seg_len = len(non_op_seg)/2
+            #non_op_seg_len_hex = hex(non_op_seg_len)[2:]
+            non_op_seg_len_hex = script_length(word)
             string_hex.append(non_op_seg_len_hex)
             string_hex.append(non_op_seg)
         else:
@@ -320,10 +346,13 @@ def sign(txdict, prevUTXO, prevUTXO_VOUT, scriptPK, priv, HASHCODE='SIGHASH_ALL'
 ####
 def create_sig(tx, priv, custompk=''):
     ### Double hash
+    #prvtmp = decodeB58(priv)    
+    #print str(prvtmp)
     hashtx = hashlib.sha256(hashlib.sha256(tx.decode('hex')).digest()).digest()
 
     ### Prepare priv. key for signing
     signingkey = ecdsa.SigningKey.from_string(binascii.unhexlify(priv), curve=ecdsa.SECP256k1)
+    #signingkey = ecdsa.SigningKey.from_string(priv, curve=ecdsa.SECP256k1)
     signpubkey = '04' + signingkey.verifying_key.to_string().encode('hex')
 
     ### Produce signature

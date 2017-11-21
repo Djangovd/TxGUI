@@ -21,16 +21,6 @@ def H160(string):
     return mdout
 ################
 
-### Alternative HASH160
-#publickey = node1_pub.decode('hex')
-#s = hashlib.new('sha256',    publickey).digest()
-#r = hashlib.new('ripemd160', s        ).digest()
-#print "stp1 = " + str(s.encode('hex'))
-##'ea571f53cb3a9865d3dc74735e0c16643d319c6ad81e199b9c8408cecbcec7bb'
-#r.encode('hex')
-#print "stp2 = " + str(r.encode('hex'))
-#'5238c71458e464d9ff90299abca4a1d7b9cb76ab'
-
 def B58(string):
 ### Needs verification !!!
     unencoded = str(bytearray.fromhex( string ))
@@ -68,16 +58,25 @@ def str_to_endian(hex_string):
     return new_endian_hex
 #########################
 
-def script_length(string):
+def script_length(string, sig=False):
+    config = collections.OrderedDict()
+    if sig:
+        config['']=-1
+        config['fd']=253
+        config['fe']=65535
+        config['ff']=4294967296        
+    else:
+        config['']=-1
+        config['4c']=75
+        config['4d']=255
+        config['4e']=65535
+    prefix = ''
     l = len(string)/2
     lhx = hex(l)[2:] if l != 0 else '00'
     if len(str(lhx)) % 2 != 0: lhx='0'+lhx
-    if int(l) > 255:
-        return "4d"+str_to_endian(str(lhx))
-    elif int(l) > 65535:
-        return "4e"+str_to_endian(str(lhx))
-    else:
-        return str(lhx)
+    for key, value in config.items():
+        if int(l) > value: prefix = key
+    return prefix + str_to_endian(str(lhx))
 
 ##################
 
@@ -206,7 +205,7 @@ def modify(scrpt,newScriptPubKey,typ=None,sign=False):
 
 ##############################     
 
-def op_script_encode(op_string,len_prefix=False):
+def op_script_encode(op_string,len_prefix=False, sig=False):
 # We need 
 #
 # OP_2-OP_16 	82-96 	0x52-0x60 
@@ -235,8 +234,9 @@ def op_script_encode(op_string,len_prefix=False):
             non_op_seg     = word
             #non_op_seg_len = len(non_op_seg)/2
             #non_op_seg_len_hex = hex(non_op_seg_len)[2:]
-            non_op_seg_len_hex = script_length(word)
-            string_hex.append(non_op_seg_len_hex)
+            if not sig:
+                non_op_seg_len_hex = script_length(word)
+                string_hex.append(non_op_seg_len_hex)
             string_hex.append(non_op_seg)
         else:
             string_hex.append(op_dict[word][2:])
@@ -253,6 +253,7 @@ def op_script_encode(op_string,len_prefix=False):
         return string_hex_out
 
     print string_hex_out
+    
 
 ########################
 

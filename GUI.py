@@ -31,6 +31,7 @@ from Tkinter import *#Tk, Entry, Button, Label, INSERT, Canvas
 root = Tk()
 
 Fields = ['Version', '# inputs', 'Previous TXout hash', 'Previous TXout idx', 'scriptSig', 'Sequence', '# outputs', 'value', 'scriptPubKey', 'locktime']
+PreSetVals = ['01000000', '01', '', '', '', '', '01', '', '', '00000000']
 #Sizes(bytes): 4,       1-9,           32,                    4,                 - ,           4 ,          1 - 9,    8 , 4
 FieldSize = [8, 18, 64, 8, 128, 8, 18, 16, 128, 8]
 Ents = []
@@ -65,6 +66,9 @@ for item in Ents:
 #e1 = Entry(root)
 #e2 = Entry(root)
 
+### Fill form with pre-set values
+for ent in Ents:
+    ent.insert(0, PreSetVals[Ents.index(ent)])
 
 # Print the contents of entry widget to console
 def print_content():
